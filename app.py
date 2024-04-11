@@ -1,5 +1,6 @@
 # Import dependencies for Kivy
 from kivy.app import App
+from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
@@ -15,6 +16,8 @@ import tensorflow as tf
 import numpy  as np
 import os
 
+
+# Builder.load_file("menu.kv")
 
 # 7. Build layout
 class AppLayout(BoxLayout):
