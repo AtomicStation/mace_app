@@ -11,80 +11,88 @@ from kivy.logger import Logger
 
 # import computer vision dependencies
 import cv2
-import mediapipe as mp
+
 import tensorflow as tf
 import numpy  as np
 import os
 
+# mediapipe
+import mediapipe as mp
+mp_holistic = mp.solutions.holistic
+mp_drawing = mp.solutions.drawing_utils
 
 # Builder.load_file("menu.kv")
 # doesn't work, need to use screenmanager for a proper screen rather than this one which is just a crappy overlay
 
+def mediapipe_detection(image, model):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # COLOR CONVERSION BGR 2 RGB
+    image.flags.writeable = False                  # Image is no longer writeable
+    results = model.process(image)                 # Make prediction
+    image.flags.writeable = True                   # Image is now writeable 
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # COLOR COVERSION RGB 2 BGR
+    return image, results
 
+def cyberpunk_landmarks(image, results):
+    # Cyberpunk colors in BGR
+    light_blue = (255, 247, 209)
+    purple = (255, 0, 214)
+    # Draw pose connections
+    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
+                             mp_drawing.DrawingSpec(color=purple, thickness=2, circle_radius=4), 
+                             mp_drawing.DrawingSpec(color=light_blue, thickness=2, circle_radius=2)
+                             ) 
 
 # 7. Build layout
-class AppLayout(BoxLayout):
+# class AppLayout(BoxLayout):
+#     pass
 
+# Build the app
+class MaceCVApp(App):
 
     def build(self):
+        # create super box
         superBox = BoxLayout(orientation='vertical')
 
         # create top Box layout
-
         topBox = BoxLayout(orientation='horizontal', size_hint=(1,0.2))
 
         # Create and build individual label boxes
-
         label_box_1 = BoxLayout(orientation='vertical')
-
         prob_label = Label(text='PROBABILITY')
         prob_label_value = Label(text='0.84')
-
         label_box_1.add_widget(prob_label)
         label_box_1.add_widget(prob_label_value)
 
-
         label_box_2 = BoxLayout(orientation='vertical')
-
         class_label = Label(text='CLASS')
-        class_label_value = Label(text='0.84')
-
-        label_box_1.add_widget(class_label)
-        label_box_1.add_widget(class_label_value)
+        class_label_value = Label(text='Swing')
+        label_box_2.add_widget(class_label)
+        label_box_2.add_widget(class_label_value)
         
         label_box_3 = BoxLayout(orientation='vertical')
         rep_label = Label(text='REPS')
-        rep_label_value = Label(text='0.84')
-
-        label_box_1.add_widget(rep_label)
-        label_box_1.add_widget(rep_label_value)
+        rep_label_value = Label(text='0')
+        label_box_3.add_widget(rep_label)
+        label_box_3.add_widget(rep_label_value)
         
         # build top box
-
         topBox.add_widget(label_box_1)
         topBox.add_widget(label_box_2)
         topBox.add_widget(label_box_3)
 
+        # build bottom box
         bottomBox = BoxLayout(orientation='horizontal', size_hint=(1,0.2))
         play_buttom = Button(text="Start/Stop")
         reset_button = Button(text='Reset')
-
         bottomBox.add_widget(play_buttom)
         bottomBox.add_widget(reset_button)
 
-
-
-
-
-
-        # components
+        # Camera components
         self.web_cam = Image(size_hint=(1,0.6))
-
         self.capture = cv2.VideoCapture(0)
         Clock.schedule_interval(self.update, 1/33)
 
         # build superBox
-
         superBox.add_widget(topBox)
         superBox.add_widget(self.web_cam)
         superBox.add_widget(bottomBox)
@@ -94,44 +102,34 @@ class AppLayout(BoxLayout):
         
 
     def update(self, *args):
-        # todo: add Mediapipe layer over the top of the openCV layer
-        # with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+        # bring capture object into function
+        cap = self.capture
 
-        ret, frame = self.capture.read()
+        # start mediapipe
+        with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
 
-        # convert raw OpenCV image array into a texture for rendering
+            # Read feed
+            ret, frame = cap.read()
 
-        # put image into buffer
-        buf = cv2.flip(frame, 0).tostring()
+            # Make detections
+            image, results = mediapipe_detection(frame, holistic)
 
-        # need image to be a kivy texture -- OpenGL texture
-        img_texture = Texture.create(colorfmt='bgr')
-        img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+            # draw landmarks
+            cyberpunk_landmarks(image, results)
 
-        self.web_cam.texture = img_texture
+            # convert raw OpenCV image array into a texture for rendering
+
+            # put image into buffer
+            buf1 = cv2.flip(image, 0)
+            buf = buf1.tostring()
+
+            # conver image to a kivy texture -- OpenGL texture
+            img_texture = Texture.create(size=(image.shape[1], image.shape[0]), colorfmt='bgr')
+            img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+
+            self.web_cam.texture = img_texture
 
 
-class MaceCVApp(App):
-    pass
-
-
-
-
-
-
+# run the app, close openCV after app is closed
 MaceCVApp().run()
-
-# 8. Build update function
-
-
-
-# 9. Bring over preprocessing function
-
-
-
-
-# 10. bring over verification function
-# 11. update verification function to handle new paths and save current frame
-# 12. update verification function to set verified text
-# 13. link verification function to button
-# 14. setup logger
+cv2.destroyAllWindows()
