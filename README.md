@@ -10,15 +10,21 @@ This project was designed with this problem in mind: using computer vision techn
 
 Currently, the project uses OpenCV and MediaPipe pose estimation data to train a LSTM RNN model to detect swings. Kivy is used to make the project into a mobile application.
 
+TODO: Add photo of mace, or maybe a photo of me swinging a mace
 
 ## Table of Contents (Optional)
 
 If your README is long, add a table of contents to make it easy for users to find what they need.
 
+- [Motivation](#motivation)
 - [Installation](#installation)
 - [Usage](#usage)
 - [References and Credits](#credits)
 - [License](#license)
+
+## Motivation
+
+TODO: add motivation, rewrite description
 
 ## Installation
 
@@ -37,6 +43,7 @@ Other supporting libraries:
 ## Usage
 
 TODO: update how the project works :D
+TODO: Add screenshots
 
 ## Credits
 
