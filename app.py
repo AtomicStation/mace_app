@@ -5,9 +5,12 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.uix.screenmanager import ScreenManager, Screen
+
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.logger import Logger
+
 
 # import computer vision dependencies
 import cv2
@@ -41,6 +44,15 @@ def cyberpunk_landmarks(image, results):
                              mp_drawing.DrawingSpec(color=purple, thickness=2, circle_radius=4), 
                              mp_drawing.DrawingSpec(color=light_blue, thickness=2, circle_radius=2)
                              ) 
+
+class FirstWindow(Screen):
+    pass
+
+class SecondWindow(Screen):
+    pass
+
+class WindowManager(ScreenManager):
+    pass
 
 # 7. Build layout
 # class AppLayout(BoxLayout):
