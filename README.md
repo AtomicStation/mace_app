@@ -4,7 +4,7 @@
 
 A lot of current, popular fitness modalities deal with movements that are either up and down (squats, deadlifts) or front and back (bench press). Not a lot of exercises deal with side to side movements. The steel mace is an offset weight on a long handle, which allows for unique opportunities. Steel mace training provides enhanced grip strength, improved core strength and stabilization, increased range of motion, better shoulder health, and fun!
 
-The offset nature of the weight means that momentum is used during the swings. The "float" means that the steel mace swing can also be used to train strength-endurance. Endurance activities like running have technologies that utilize GPS tracking and time, which results in accurate metrics for assessing training volume. For steel mace swings, time and swing repetitions are required for volume (swings per minute, swings per hour, etc). However, for long sessions, keeping track of swing repetitions becomes nearly impossible.
+The offset nature of the weight means that momentum is used during the swings. The "float" means that the steel mace swing can also be used to train strength-endurance. Endurance activities like running have technologies that utilize GPS tracking and time, which results in accurate metrics for assessing training volume. For steel mace swings, time and swing repetitions are required for volume (swings per minute, swings per hour, etc). However, for long sessions, mentally keeping track of swing repetitions becomes nearly impossible.
 
 This project was designed with this problem in mind: using computer vision techniques to count reps for steel mace swings.
 
@@ -13,9 +13,6 @@ Currently, the project uses OpenCV and MediaPipe pose estimation data to train a
 TODO: Add photo of mace, or maybe a photo of me swinging a mace
 
 ## Table of Contents (Optional)
-
-If your README is long, add a table of contents to make it easy for users to find what they need.
-
 - [Motivation](#motivation)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -24,7 +21,7 @@ If your README is long, add a table of contents to make it easy for users to fin
 
 ## Motivation
 
-TODO: add motivation, rewrite description
+I was motivated to start this project because the steel mace is a relatively unknown training tool, and while other AI-powered fitness apps exists, the steel mace is too niche to be offered.
 
 ## Installation
 

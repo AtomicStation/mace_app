@@ -4,8 +4,10 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.properties import StringProperty, BooleanProperty
 
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
@@ -61,6 +63,9 @@ class WindowManager(ScreenManager):
 # Build the app
 class MaceCVApp(App):
 
+    toggle_button_text = StringProperty("Start Counting")
+    mediapipe_enabled = BooleanProperty(False)
+
     def build(self):
         # create super box
         superBox = BoxLayout(orientation='vertical')
@@ -94,9 +99,9 @@ class MaceCVApp(App):
 
         # build bottom box
         bottomBox = BoxLayout(orientation='horizontal', size_hint=(1,0.2))
-        play_buttom = Button(text="Start/Stop")
+        self.play_button = ToggleButton(text=self.toggle_button_text, on_press=self.on_toggle_button_state)
         reset_button = Button(text='Reset')
-        bottomBox.add_widget(play_buttom)
+        bottomBox.add_widget(self.play_button)
         bottomBox.add_widget(reset_button)
 
         # Camera components
@@ -117,29 +122,54 @@ class MaceCVApp(App):
         # bring capture object into function
         cap = self.capture
 
-        # start mediapipe
-        with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+        if self.mediapipe_enabled:
+            # MediaPipe is enabled, start MediaPipe
+            with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
 
+                # Read feed
+                ret, frame = cap.read()
+
+                # Make MediaPipe detections
+                image, results = mediapipe_detection(frame, holistic)
+
+                # Draw landmarks
+                cyberpunk_landmarks(image, results)
+
+                # Convert raw OpenCV image array into a texture for rendering
+
+                # put image into buffer
+                buf1 = cv2.flip(image, 0)
+                buf = buf1.tostring()
+
+                # convert image into kivy texture -- OpenGL texture
+                img_texture = Texture.create(size=(image.shape[1], image.shape[0]), colorfmt='bgr')
+                img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+
+                self.web_cam.texture = img_texture
+        else:
+            # MediaPipe is not enabled
             # Read feed
-            ret, frame = cap.read()
-
-            # Make detections
-            image, results = mediapipe_detection(frame, holistic)
-
-            # draw landmarks
-            cyberpunk_landmarks(image, results)
-
-            # convert raw OpenCV image array into a texture for rendering
-
+            ret, image = cap.read()
             # put image into buffer
             buf1 = cv2.flip(image, 0)
             buf = buf1.tostring()
 
-            # conver image to a kivy texture -- OpenGL texture
+            # convert image into kivy texture -- OpenGL texture
             img_texture = Texture.create(size=(image.shape[1], image.shape[0]), colorfmt='bgr')
             img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
 
             self.web_cam.texture = img_texture
+
+    def on_toggle_button_state(self, widget):
+        if widget.state == "normal":
+            widget.text = "Start NOW"
+            self.mediapipe_enabled = False
+        else:
+            widget.text = "STOP"
+            self.mediapipe_enabled = True
+
+
+
 
 
 # run the app, close openCV after app is closed
