@@ -14,7 +14,9 @@
 - [ ] Kivy Tutorial - Galaxy V1  
 
 ## Done
-- [x] Start/Stop Button triggers MediaPipe - 2024-04-17
+- [x] Rewrite training model so it generates better training data - 2024-04-18  
+- [x] Clean up Prediction code - 2024-04-18  
+- [x] Start/Stop Button triggers MediaPipe - 2024-04-17  
 - [x] Nicholas Renotte - Tensorflow + Kivy part 2 - 2024-04-16  
 - [x] Debug predict code - 2024-04-15  
 - [x] Convert Training code from Jupyter to PY - 2024-04-14  
