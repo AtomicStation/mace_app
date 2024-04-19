@@ -24,28 +24,13 @@ import os
 # mediapipe
 import mediapipe as mp
 mp_holistic = mp.solutions.holistic
-mp_drawing = mp.solutions.drawing_utils
+# mp_drawing = mp.solutions.drawing_utils
+
+# import custom model functions
+from custom_model import *
 
 # Builder.load_file("menu.kv")
 # doesn't work, need to use screenmanager for a proper screen rather than this one which is just a crappy overlay
-
-def mediapipe_detection(image, model):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # COLOR CONVERSION BGR 2 RGB
-    image.flags.writeable = False                  # Image is no longer writeable
-    results = model.process(image)                 # Make prediction
-    image.flags.writeable = True                   # Image is now writeable 
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # COLOR COVERSION RGB 2 BGR
-    return image, results
-
-def cyberpunk_landmarks(image, results):
-    # Cyberpunk colors in BGR
-    light_blue = (255, 247, 209)
-    purple = (255, 0, 214)
-    # Draw pose connections
-    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
-                             mp_drawing.DrawingSpec(color=purple, thickness=2, circle_radius=4), 
-                             mp_drawing.DrawingSpec(color=light_blue, thickness=2, circle_radius=2)
-                             ) 
 
 class FirstWindow(Screen):
     pass
@@ -55,10 +40,6 @@ class SecondWindow(Screen):
 
 class WindowManager(ScreenManager):
     pass
-
-# 7. Build layout
-# class AppLayout(BoxLayout):
-#     pass
 
 # Build the app
 class MaceCVApp(App):
@@ -121,44 +102,33 @@ class MaceCVApp(App):
     def update(self, *args):
         # bring capture object into function
         cap = self.capture
+        
+        # Read feed
+        ret, image = cap.read()
 
+        # MediaPipe is enabled, start MediaPipe
         if self.mediapipe_enabled:
-            # MediaPipe is enabled, start MediaPipe
             with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
 
-                # Read feed
-                ret, frame = cap.read()
-
                 # Make MediaPipe detections
-                image, results = mediapipe_detection(frame, holistic)
+                image, results = mediapipe_detection(image, holistic)
 
-                # Draw landmarks
-                cyberpunk_landmarks(image, results)
+                # Draw landmarks on image
+                draw_pose_landmarks(image, results)
 
-                # Convert raw OpenCV image array into a texture for rendering
+        # Convert raw OpenCV image array into a texture for rendering        
+        #     # put image into buffer        
+        buf1 = cv2.flip(image, 0)
+        buf = buf1.tobytes()
 
-                # put image into buffer
-                buf1 = cv2.flip(image, 0)
-                buf = buf1.tostring()
+        # convert image into kivy texture -- OpenGL texture
+        img_texture = Texture.create(size=(image.shape[1], image.shape[0]), colorfmt='bgr')
+        img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
 
-                # convert image into kivy texture -- OpenGL texture
-                img_texture = Texture.create(size=(image.shape[1], image.shape[0]), colorfmt='bgr')
-                img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+        self.web_cam.texture = img_texture
 
-                self.web_cam.texture = img_texture
-        else:
-            # MediaPipe is not enabled
-            # Read feed
-            ret, image = cap.read()
-            # put image into buffer
-            buf1 = cv2.flip(image, 0)
-            buf = buf1.tostring()
-
-            # convert image into kivy texture -- OpenGL texture
-            img_texture = Texture.create(size=(image.shape[1], image.shape[0]), colorfmt='bgr')
-            img_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
-
-            self.web_cam.texture = img_texture
+    def prediction(self, *args):
+        pass
 
     def on_toggle_button_state(self, widget):
         if widget.state == "normal":
@@ -167,10 +137,6 @@ class MaceCVApp(App):
         else:
             widget.text = "STOP"
             self.mediapipe_enabled = True
-
-
-
-
 
 # run the app, close openCV after app is closed
 MaceCVApp().run()
