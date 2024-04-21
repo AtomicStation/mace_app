@@ -10,123 +10,149 @@ from keras.utils import to_categorical
 from custom_model import *
 
 
+# test: works great!
+# test1: missing sequence in actions 'idle/30' missing
+# test2: missing numpy array in sequence 'swing/30/29.npy' missing
+# test3: missing actions 'data/test3/' is empty
+# test4: missing all actions in 'swing'
+# test5: missing all sequences in 'idle'
+# test6: missing all arrays in 'swing/29/'
+# test7: doesn't exist
 
 # setup information
-PROJECT = 'Clubbell'
-MOVEMENTS = ['swing', 'hold', 'open', 'idle']
-# MOVEMENTS = ['swing', 'idle', 'hold'] - for simple mace swings
+PROJECT = 'test'
 
 # initialize DATA_PATH object
-DATA_PATH = ''
+DATA_PATH = os.path.join('data', PROJECT)
 
+# initialize important variables
+# Create Actions numpy array that we try to detect
+actions = []
 
+# How many "video" sequence we would like to track
+no_sequences = -1
+
+# How long (how many frames) each "video" sequence will be
+sequence_length = -1
+
+# Folder start number
+start_folder = -1
+
+my_frame_path_list = []
+my_list = []
+nick_frame_path_list = []
+nick_list = []
 
 # Path for exported data, numpy arrays
-if os.path.exists(PROJECT):
-    PROJECT += '_new'
+try:
+    if os.path.exists(DATA_PATH):
+        # get actions list
+        actions = sorted(os.listdir(DATA_PATH))
+        if not actions:
+            raise Exception("{} does not contain any actions".format(DATA_PATH))
+        
+        # create label_map
+        label_map = {label:num for num, label in enumerate(actions)}
+        print(actions)
 
-DATA_PATH = os.path.join(PROJECT)
+        # testing my hypothesis
+        my_seq, my_labels = [], []
+        for action in actions:
+            ACTION_PATH = os.path.join(DATA_PATH, action)
+            str_seq = os.listdir(ACTION_PATH)
 
-# Actions that we try to detect
-actions = np.array(MOVEMENTS)
+            sequences = sorted(np.array(str_seq).astype(int))
+            if not sequences:
+                raise Exception("{} does not contain any sequences".format(ACTION_PATH))
+            
+            seq_count = len(sequences) 
+            start_folder = int(sequences[0])
+            if no_sequences == -1 or seq_count == no_sequences:
+                no_sequences = seq_count
+            else:
+                raise Exception("{} does not have consistent number of sequences, expecting {}, found {}".format(ACTION_PATH, no_sequences, seq_count))
+            
+            my_list = sequences
+            print(sequences)
+            for sequence in sequences:
+                # for the real thing, since when we generate data we will save frames for each sequence as well, specify 'arrays' directory
+                # SEQ_PATH = os.path.join(ACTION_PATH, sequence, 'arrays')
+                SEQ_PATH = os.path.join(ACTION_PATH, str(sequence))
+                np_count = 0
+                my_window = []
+                frames = sorted(os.listdir(SEQ_PATH))
+                for frame_num in os.listdir(SEQ_PATH):
+                    FRAME_PATH = os.path.join(SEQ_PATH, frame_num)
+                    if os.path.isfile(FRAME_PATH):
+                        np_count += 1
+                    
+                    # my_res = np.load(FRAME_PATH)
+                    my_res = FRAME_PATH
+                    my_window.append(my_res)
+                    my_frame_path_list.append(FRAME_PATH)
 
-# Thirty videos worth of data
-no_sequences = 30
+                if sequence_length == -1 or np_count == sequence_length:
+                    sequence_length = np_count
+                elif np_count == 0:
+                    raise Exception("{} does not contain any arrays".format(SEQ_PATH))
+                else:
+                    raise Exception("{} does not have consistent number of numpy arrays, expecting {}, found {}".format(SEQ_PATH, sequence_length, np_count))
 
-# Videos are going to be 30 frames in length
-sequence_length = 30
+                my_seq.append(my_window)
+                my_labels.append(label_map[action])
 
-# Folder start
-start_folder = 1
+        print("Actions: ", actions)
+        print("no_sequences: ", no_sequences)
+        print("sequence_length: ", sequence_length)
+        print("start_folder: ", start_folder)
 
-for action in actions: 
-    os.makedirs(os.path.join(DATA_PATH,action))
-    for sequence in range(1,no_sequences+1):
-        try: 
-            os.makedirs(os.path.join(DATA_PATH, action, str(sequence)))
-        except:
-            pass
+        ## OLD CODE Preprocess Data and Create Labels and Features
 
-# Generate and Collect Keypoint Values for Training and Testing
-cap = cv2.VideoCapture(0)
+        new_sequences, labels = [], []
+        for action in actions:
+            nick_list = np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int)
+            for sequence in np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int):
+                window = []
+                for frame_num in range(sequence_length):
+                    # res = np.load(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
+                    res = os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num))
+                    # print(type(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num))))
+                    window.append(res)
+                    nick_frame_path_list.append(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
+                new_sequences.append(window)
+                labels.append(label_map[action])
 
-# Set mediapipe model 
-mp_holistic = mp.solutions.holistic # Holistic model
-with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-    
-    # NEW LOOP
-    # Loop through actions
-    for action in actions:
-        # Loop through sequences aka videos
-        for sequence in range(start_folder, start_folder+no_sequences):
-            # Loop through video length aka sequence length
-            for frame_num in range(sequence_length):
 
-                # Read feed
-                ret, frame = cap.read()
+        # Create training and testing sets
+        # X = np.array(new_sequences)
+        # y = to_categorical(labels).astype(int)
 
-                # Make detections
-                image, results = mediapipe_detection(frame, holistic)
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
 
-                # Draw landmarks
-                # draw_pose_landmarks(image, results)
-                
-                # NEW Apply wait logic
-                if frame_num == 0: 
-                    cv2.putText(image, 'STARTING {} COLLECTION'.format(action.upper()), (120,200), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv2.LINE_AA)
-                    cv2.putText(image, 'Collecting frames for {} Video Number {}'.format(action, sequence), (15,12), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-                    # Show to screen
-                    cv2.imshow('OpenCV Feed', image)
-                    cv2.waitKey(1000)
-                else: 
-                    cv2.putText(image, 'Collecting frames for {} Video Number {}'.format(action, sequence), (15,12), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-                    # Show to screen
-                    cv2.imshow('OpenCV Feed', image)
-                
-                # NEW Export keypoints
-                keypoints = extract_keypoints(results)
-                npy_path = os.path.join(DATA_PATH, action, str(sequence), str(frame_num))
-                np.save(npy_path, keypoints)
+        # log_dir = os.path.join('Logs')
+        # tb_callback = TensorBoard(log_dir=log_dir)
 
-        # Reset movement timer
-        cv2.putText(image, 'RESET MOVEMENT', (120,200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv2.LINE_AA)
-        cv2.waitKey(2000)
+        # # Build LSTM RNN model
+        # model = build_model(actions)
 
-        # Break gracefullyq
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows()
+        # # Train the model
+        # model.fit(X_train, y_train, epochs=200, callbacks=[tb_callback])
 
-## Preprocess Data and Create Labels and Features
-label_map = {label:num for num, label in enumerate(actions)}
-sequences, labels = [], []
-for action in actions:
-    for sequence in np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int):
-        window = []
-        for frame_num in range(sequence_length):
-            res = np.load(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
-            window.append(res)
-        sequences.append(window)
-        labels.append(label_map[action])
-X = np.array(sequences)
-y = to_categorical(labels).astype(int)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
-X = np.array(sequences)
-y = to_categorical(labels).astype(int)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
+        # # Save the weights
+        # model.save(PROJECT + '.h5')
 
-log_dir = os.path.join('Logs')
-tb_callback = TensorBoard(log_dir=log_dir)
 
-# Build LSTM RNN model
-model = build_model(actions)
 
-# Train the model
-model.fit(X_train, y_train, epochs=200, callbacks=[tb_callback])
 
-# Save the weights
-model.save(PROJECT + '.h5')
+    else:
+        raise Exception("{} does not exist".format(DATA_PATH))
+except Exception as e:
+    print("ERROR: ", e)
+
+
+
+
+
+
+
+
