@@ -14,6 +14,8 @@
 - [ ] Kivy Tutorial - Galaxy V1  
 
 ## Done
+- [x] Figured out bug: integers as strings are sorted not as expected - 2024-04021
+- [x] No more stalling in the training model video! SMOOTH!! - 2024-04-20
 - [x] Rewrite training model so it generates better training data - 2024-04-18  
 - [x] Clean up Prediction code - 2024-04-18  
 - [x] Start/Stop Button triggers MediaPipe - 2024-04-17  
