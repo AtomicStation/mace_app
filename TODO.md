@@ -1,20 +1,22 @@
 # MaceCV To-Do list and Kanban
 
 ## To-Do
-- [ ] Start/Stop Button triggers prediction  
-- [ ] Labels update with prediction  
-- [ ] Reset button clears previous prediction data/counter  
-- [ ] Record/Save video from app  
+- [ ] Improve prediction model, add more data!  
+- [ ] Create robust counter logic  
+- [ ] Deploy to an actual phone  
 - [ ] Menu Screen  
-- [ ] Kivy Tutorial - Galaxy V2  
-- [ ] Kivy Tutorial - Galaxy V3  
+- [ ] Record/Save video from app  
 - [ ] Convert pure python into KV file  
 - [ ] tech debt: clean up gen_data file with helper functions for repeat codesand bag
 
 ## In Progress
-- [ ] generate clubbell prediction model   
+- [ ] Add more data, 30 more sequences   
 
 ## Done
+- [x] Start/Stop Button triggers prediction - 2024-04-23  
+- [x] Labels update with prediction - 2024-04-23  
+- [x] Reset button clears previous prediction data/counter - 2024-04-23  
+- [x] generate clubbell prediction model - 2024-04-23  
 - [x] Generated full set of clubbell data! - 2024-04-22  
 - [x] Simplified gen_train_data so it's sequentially saving info instead of by action - 2024-04-22  
 - [x] Updated data gen opencv video to be really clear with instructions - 2024-04-22  
