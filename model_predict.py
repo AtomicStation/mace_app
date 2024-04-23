@@ -12,7 +12,8 @@ demo = False
 
 actions = []
 
-
+PROJECT = 'Clubbell'
+MOVEMENTS = ['swing', 'open', 'hold', 'idle']
 
 # New detection variables
 sequence = [] # collect 30 frames to make a prediction
@@ -28,10 +29,10 @@ if demo:
     cap = cv2.VideoCapture(0)
 
 else:
-    actions = np.array(['swing', 'idle', 'hold'])
+    actions = np.array(MOVEMENTS)
     model = build_model(actions)
-    model.load_weights('maceCV_weights.h5')
-    cap = cv2.VideoCapture("videos/tom_training.mp4")
+    model.load_weights(PROJECT + '_weights.h5')
+    cap = cv2.VideoCapture(0)
 
 # cap = cv2.VideoCapture("videos/MaceCV/IMG_0020.MOV")
 
