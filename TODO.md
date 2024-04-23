@@ -9,12 +9,16 @@
 - [ ] Kivy Tutorial - Galaxy V2  
 - [ ] Kivy Tutorial - Galaxy V3  
 - [ ] Convert pure python into KV file  
+- [ ] tech debt: clean up gen_data file with helper functions for repeat codesand bag
 
 ## In Progress
-- [ ] Kivy Tutorial - Galaxy V1  
+- [ ] generate clubbell prediction model   
 
 ## Done
-- [x] Figured out bug: integers as strings are sorted not as expected - 2024-04021
+- [x] Generated full set of clubbell data! - 2024-04-22  
+- [x] Simplified gen_train_data so it's sequentially saving info instead of by action - 2024-04-22  
+- [x] Updated data gen opencv video to be really clear with instructions - 2024-04-22  
+- [x] Figured out bug: integers as strings are sorted not as expected - 2024-04-21  
 - [x] No more stalling in the training model video! SMOOTH!! - 2024-04-20
 - [x] Rewrite training model so it generates better training data - 2024-04-18  
 - [x] Clean up Prediction code - 2024-04-18  
