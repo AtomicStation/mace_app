@@ -18,8 +18,10 @@ MOVEMENTS = ['swing', 'open', 'hold', 'idle']
 # New detection variables
 sequence = [] # collect 30 frames to make a prediction
 predictions = []
+action_seq = []
+swing_seq = ['swing', 'open', 'hold']
 counter = 0
-current_stage = ''
+current_class = 'idle'
 threshold = 0.5 # confidence
 
 if demo:
@@ -29,9 +31,10 @@ if demo:
     cap = cv2.VideoCapture(0)
 
 else:
-    actions = np.array(MOVEMENTS)
+    sorted_actions = sorted(MOVEMENTS)
+    actions = np.array(sorted_actions)
     model = build_model(actions)
-    model.load_weights(PROJECT + '_weights.h5')
+    model.load_weights(PROJECT + '_weights_300.h5')
     cap = cv2.VideoCapture(0)
 
 # cap = cv2.VideoCapture("videos/MaceCV/IMG_0020.MOV")
@@ -55,46 +58,62 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
         # 2. Prediction logic
         keypoints = extract_keypoints(results)
         sequence.append(keypoints)
-        sequence = sequence[-30:]
+        last_sequence = sequence[-30:]
         
-        if len(sequence) == 30:
-            res = model.predict(np.expand_dims(sequence, axis=0))[0]
+        if len(last_sequence) == 30:
+            res = model.predict(np.expand_dims(last_sequence, axis=0), verbose=0)[0]
             predictions.append(np.argmax(res))
             body_language_class = actions[np.argmax(res)]
             body_language_prob = res[np.argmax(res)]
 
-            # Counter logic
-            if body_language_class == 'swing' and body_language_prob >= 0.7:
-                current_stage = 'swing'
-            elif current_stage == 'swing' and body_language_class == 'hold' and body_language_prob >= 0.7:
-                current_stage = 'hold'
+            # # Counter logic
+            # if body_language_class == 'swing' and body_language_prob >= 0.7:
+            #     current_stage = 'swing'
+            # elif current_stage == 'swing' and body_language_class == 'hold' and body_language_prob >= 0.7:
+            #     current_stage = 'hold'
+            #     counter += 1
+
+            if body_language_prob >= 0.9 and current_class != body_language_class:
+                # update current_class
+                current_class = body_language_class
+                action_seq.append(body_language_class.lower())
+                print('High confidence this is: {}'.format(body_language_class))
+
+            last_actions = action_seq[-3:]
+            if len(last_actions) == 3 and last_actions == swing_seq:
                 counter += 1
+                print('Counter: {}'.format(counter))
 
 
-            # Status Box
-            cv2.rectangle(image, (0,0), (250, 60), (245, 117, 16), cv2.FILLED)
+
+
+            # # Status Box
+            # cv2.rectangle(image, (0,0), (250, 60), (245, 117, 16), cv2.FILLED)
             
             
-            # Display Class
-            cv2.putText(image, 'CLASS'
-                        , (95,12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
-            cv2.putText(image, body_language_class.split(' ')[0]
-                        , (90,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+            # # Display Class
+            # cv2.putText(image, 'CLASS'
+            #             , (95,12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+            # cv2.putText(image, body_language_class.split(' ')[0]
+            #             , (90,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
             
-            # Display Probability
-            cv2.putText(image, 'PROB'
-                        , (15,12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
-            cv2.putText(image, str(round(body_language_prob,2))
-                        , (10,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+            # # Display Probability
+            # cv2.putText(image, 'PROB'
+            #             , (15,12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+            # cv2.putText(image, str(round(body_language_prob,2))
+            #             , (10,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
             
-            # Display Count
-            cv2.putText(image, 'Count'
-                        , (200,12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
-            cv2.putText(image, str(counter)
-                        , (200,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+            # # Display Count
+            # cv2.putText(image, 'Count'
+            #             , (200,12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+            # cv2.putText(image, str(counter)
+            #             , (200,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+
+            image = prob_viz(res, actions, image)
     
         # Show to screen
         cv2.imshow('OpenCV Feed', image)
+        cv2.waitKey(30)
 
         # Break gracefully
         if cv2.waitKey(10) & 0xFF == ord('q'):
