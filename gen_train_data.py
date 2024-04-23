@@ -18,14 +18,23 @@ def get_center(text_width, text_height, video):
     y_pos = (video_height + text_height) // 2
     return x_pos, y_pos
 
+# not used yet
 def progress_bar(text_width, text_height, image, progress):
     pass
 
+"""
+USE THIS FILE TO GENERATE DATA FOR ACTIONS THAT ARE SEPARATE 
+FROM EACH OTHER, AND CAN BE IN ANY ORDER, i.e.
+ACTION 1 WILL BE REPEATED no_sequences TIMES, FOLLOWED BY
+ACTION 2 for no_sequences TIMES, etc.
+"""
+# 
+
 # setup information
-gen_data = False
-PROJECT = 'Testing'
-MOVEMENTS = ['swing']
-# MOVEMENTS = ['swing', 'hold', 'open', 'idle']
+gen_data = True
+PROJECT = 'Clubbell'
+# MOVEMENTS = ['swing']
+MOVEMENTS = ['swing', 'open', 'hold', 'idle']
 # MOVEMENTS = ['swing', 'idle', 'hold'] - for simple mace swings
 
 # Create Actions numpy array that we try to detect
@@ -40,6 +49,9 @@ sequence_length = 30
 # Folder start number
 start_folder = 1
 
+# initialize the path for data
+DATA_PATH = os.path.join('data', PROJECT)
+
 if gen_data:
     # Path for exported frames, check to see if it exists
     while os.path.exists(DATA_PATH):
@@ -48,10 +60,16 @@ if gen_data:
 
     # create folders
     for action in actions: 
-        os.makedirs(os.path.join(DATA_PATH,action))
-        for sequence in range(1,no_sequences+1):
+        ACTION_PATH = os.path.join(DATA_PATH, action)
+        os.makedirs(ACTION_PATH)
+        for sequence in range(start_folder, start_folder+no_sequences):
+            SEQ_PATH = os.path.join(ACTION_PATH, str(sequence))
+            os.makedirs(SEQ_PATH)
             try: 
-                os.makedirs(os.path.join(DATA_PATH, action, str(sequence)))
+                ARRAY_PATH = os.path.join(SEQ_PATH, 'arrays')
+                FRAMES_PATH = os.path.join(SEQ_PATH, 'frames')
+                os.makedirs(ARRAY_PATH)
+                os.makedirs(FRAMES_PATH)
             except:
                 pass
 
@@ -62,8 +80,9 @@ cap = cv2.VideoCapture(0)
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 # The actual text used in the directions
-collect_text = 'Collecting frames for {} Video Number {} of ' + str(no_sequences)
+collect_text = 'Collecting frames for {} Video Number {} of ' + str(start_folder+no_sequences-1)
 new_text = 'GET READY STARTING SOON'
+action_text = 'NEW ACTION! PREPARE {}'
 start_text = 'COLLECTING {}'
 go_text = 'GO!'
 reset_text = 'RESET MOVEMENT'
@@ -94,8 +113,33 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
         # Show to screen
         cv2.imshow('OpenCV Feed', image)
         cv2.waitKey(30)
+
     # Loop through actions
     for action in actions:
+        for i in range(countdown_length):
+            # Update feed
+            ret, image = cap.read()
+            # no longer check for new video
+            current_collect_text = collect_text.format(action, 0)
+            text_size = cv2.getTextSize(current_collect_text, font, 0.5, 1)[0]
+            cv2.rectangle(image, (0,0), (text_size[0]+8, text_size[1]+12), (0, 0, 0), cv2.FILLED)
+            cv2.putText(image, current_collect_text, (5, 17), font, 0.5, (255,255,255), 1, cv2.LINE_AA)
+
+            current_action_text = action_text.format(action.upper())
+            text_width, text_height = get_size(current_action_text, font, 1, 4)
+            textX, textY = get_center(text_width, text_height, cap)
+            cv2.putText(image, current_action_text, (textX , textY), font, 1, (0,255, 0), 4, cv2.LINE_AA)
+
+            progress = i/countdown_length
+            rect_topleft = (textX, textY + 10)
+            rect_bottomright = (textX + text_width, textY+5 + text_height)
+            rect_progress_bottomright = (textX + int(text_width-(text_width*progress)), textY+5 + text_height)
+            cv2.rectangle(image, rect_topleft,  rect_bottomright, (0,0,0), cv2.FILLED)
+            cv2.rectangle(image, rect_topleft,  rect_progress_bottomright, (0,255,0), cv2.FILLED)
+            # Show to screen
+            cv2.imshow('OpenCV Feed', image)
+            cv2.waitKey(30)
+
         # Loop through sequences aka videos
         for sequence in range(start_folder, start_folder+no_sequences):
             # Which
