@@ -7,7 +7,7 @@ from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.properties import StringProperty, BooleanProperty
+from kivy.properties import StringProperty, BooleanProperty, ListProperty
 
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
@@ -41,11 +41,20 @@ class SecondWindow(Screen):
 class WindowManager(ScreenManager):
     pass
 
+PROJECT = 'Clubbell'
+MOVEMENTS = ['swing', 'open', 'hold', 'idle']
+
 # Build the app
 class MaceCVApp(App):
 
     toggle_button_text = StringProperty("Start Counting")
     mediapipe_enabled = BooleanProperty(False)
+    rep_label_text = StringProperty('Null')
+    prob_label_text = StringProperty('Null')
+    class_label_text = StringProperty('Class')
+    actions = np.array(sorted(MOVEMENTS))
+    sequence = ListProperty([])
+    predictions = ListProperty([])
 
     def build(self):
         # create super box
@@ -57,21 +66,21 @@ class MaceCVApp(App):
         # Create and build individual label boxes
         label_box_1 = BoxLayout(orientation='vertical')
         prob_label = Label(text='PROBABILITY')
-        prob_label_value = Label(text='0.84')
+        self.prob_label_value = Label(text=self.prob_label_text)
         label_box_1.add_widget(prob_label)
-        label_box_1.add_widget(prob_label_value)
+        label_box_1.add_widget(self.prob_label_value)
 
         label_box_2 = BoxLayout(orientation='vertical')
         class_label = Label(text='CLASS')
-        class_label_value = Label(text='Swing')
+        self.class_label_value = Label(text=self.class_label_text)
         label_box_2.add_widget(class_label)
-        label_box_2.add_widget(class_label_value)
+        label_box_2.add_widget(self.class_label_value)
         
         label_box_3 = BoxLayout(orientation='vertical')
         rep_label = Label(text='REPS')
-        rep_label_value = Label(text='0')
+        self.rep_label_value = Label(text=self.rep_label_text)
         label_box_3.add_widget(rep_label)
-        label_box_3.add_widget(rep_label_value)
+        label_box_3.add_widget(self.rep_label_value)
         
         # build top box
         topBox.add_widget(label_box_1)
@@ -81,7 +90,7 @@ class MaceCVApp(App):
         # build bottom box
         bottomBox = BoxLayout(orientation='horizontal', size_hint=(1,0.2))
         self.play_button = ToggleButton(text=self.toggle_button_text, on_press=self.on_toggle_button_state)
-        reset_button = Button(text='Reset')
+        reset_button = Button(text='Reset', on_press=self.reset_button)
         bottomBox.add_widget(self.play_button)
         bottomBox.add_widget(reset_button)
 
@@ -89,6 +98,10 @@ class MaceCVApp(App):
         self.web_cam = Image(size_hint=(1,0.6))
         self.capture = cv2.VideoCapture(0)
         Clock.schedule_interval(self.update, 1/33)
+
+        # LSTM RNN Model
+        self.model = build_model(self.actions)
+        self.model.load_weights(PROJECT + '_weights_300.h5')
 
         # build superBox
         superBox.add_widget(topBox)
@@ -100,6 +113,10 @@ class MaceCVApp(App):
         
 
     def update(self, *args):
+        counter = 0
+        action_seq = []
+        current_stage = ''
+
         # bring capture object into function
         cap = self.capture
         
@@ -115,6 +132,24 @@ class MaceCVApp(App):
 
                 # Draw landmarks on image
                 draw_pose_landmarks(image, results)
+
+                # Prediction logic
+                keypoints = extract_keypoints(results)
+                self.sequence.append(keypoints)
+                self.last_sequence = self.sequence[-30:]
+
+                if len(self.last_sequence) == 30:
+                    res = self.model.predict(np.expand_dims(self.last_sequence, axis=0), verbose=0)[0]
+                    max_res = np.argmax(res)
+                    self.predictions.append(max_res)
+                    class_text = self.actions[max_res]
+                    prob_text = res[max_res]
+
+                    # # Counter logic
+
+                    # # Update Probability and Class labels
+                    self.prob_label_value.text = str(prob_text)
+                    self.class_label_value.text = class_text
 
         # Convert raw OpenCV image array into a texture for rendering        
         #     # put image into buffer        
@@ -137,6 +172,12 @@ class MaceCVApp(App):
         else:
             widget.text = "STOP"
             self.mediapipe_enabled = True
+    
+    def reset_button(self, *args):
+        self.prob_label_value.text = '0'
+        self.class_label_value.text = 'Idle'
+        self.rep_label_value.text = '0'
+
 
 # run the app, close openCV after app is closed
 MaceCVApp().run()
