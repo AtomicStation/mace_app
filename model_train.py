@@ -9,7 +9,6 @@ from keras.utils import to_categorical
 # import custom model functions
 from custom_model import *
 
-
 # test: works great!
 # test1: missing sequence in actions 'idle/30' missing
 # test2: missing numpy array in sequence 'swing/30/29.npy' missing
@@ -20,14 +19,12 @@ from custom_model import *
 # test7: doesn't exist
 
 # setup information
-PROJECT = 'test'
+PROJECT = 'Clubbell'
 
 # initialize DATA_PATH object
 DATA_PATH = os.path.join('data', PROJECT)
 
 # initialize important variables
-# Create Actions numpy array that we try to detect
-actions = []
 
 # How many "video" sequence we would like to track
 no_sequences = -1
@@ -38,121 +35,125 @@ sequence_length = -1
 # Folder start number
 start_folder = -1
 
-my_frame_path_list = []
-my_list = []
-nick_frame_path_list = []
-nick_list = []
-
-# Path for exported data, numpy arrays
 try:
+    # Check if this project has data, \data\PROJECT
     if os.path.exists(DATA_PATH):
+
         # get actions list
         actions = sorted(os.listdir(DATA_PATH))
+        
+        # Check if actions in the project directory are missing
         if not actions:
             raise Exception("{} does not contain any actions".format(DATA_PATH))
         
-        # create label_map
+        # create label_map from the actions list, i.e. 'swing':0, 'hold': 1, etc.
         label_map = {label:num for num, label in enumerate(actions)}
-        print(actions)
 
-        # testing my hypothesis
-        my_seq, my_labels = [], []
+        # Create lists for training and testing data
+        all_data, labels = [], []
+
+        # Open each action and check the directories inside
         for action in actions:
+
+            # Create new path to actions, i.e. \data\PROJECT\ACTION
             ACTION_PATH = os.path.join(DATA_PATH, action)
+
+            # create a list of the directories in this action
             str_seq = os.listdir(ACTION_PATH)
 
-            sequences = sorted(np.array(str_seq).astype(int))
-            if not sequences:
+            # check if sequences in the action directory are missing
+            if not str_seq:
                 raise Exception("{} does not contain any sequences".format(ACTION_PATH))
-            
+
+            # Turn the list into a sorted list of integers
+            sequences = sorted(np.array(str_seq).astype(int))
+
+            # get the amount of sequences
             seq_count = len(sequences) 
             start_folder = int(sequences[0])
+
+            # check to see if the data is consisten across actions, update no_sequences variable
             if no_sequences == -1 or seq_count == no_sequences:
                 no_sequences = seq_count
             else:
                 raise Exception("{} does not have consistent number of sequences, expecting {}, found {}".format(ACTION_PATH, no_sequences, seq_count))
             
-            my_list = sequences
-            print(sequences)
+            # Open each sequence and check the files inside
             for sequence in sequences:
-                # for the real thing, since when we generate data we will save frames for each sequence as well, specify 'arrays' directory
-                # SEQ_PATH = os.path.join(ACTION_PATH, sequence, 'arrays')
-                SEQ_PATH = os.path.join(ACTION_PATH, str(sequence))
+                # There are two directory in each sequence directory, we need to specify 'arrays' directory as the appropriate path
+                SEQ_PATH = os.path.join(ACTION_PATH, str(sequence), 'arrays')
+
+                # initialize a variable to count the numpy arrays in the sequence directory
                 np_count = 0
-                my_window = []
-                frames = sorted(os.listdir(SEQ_PATH))
-                for frame_num in os.listdir(SEQ_PATH):
-                    FRAME_PATH = os.path.join(SEQ_PATH, frame_num)
+
+                # initialize a "video" list that will contain each frames landmarks in this particular sequence
+                video = []
+                
+                # get list of numpy arrays in the sequence directory
+                str_np_arrays = os.listdir(SEQ_PATH)
+
+                # check if numpy arrays in the sequence directory are missing
+                if not str_np_arrays:
+                    raise Exception("{} does not contain any arrays".format(SEQ_PATH))
+                
+                # Count the number of numpy arrays in the directory
+                for np_array in str_np_arrays:
+                    FRAME_PATH = os.path.join(SEQ_PATH, np_array)
                     if os.path.isfile(FRAME_PATH):
                         np_count += 1
-                    
-                    # my_res = np.load(FRAME_PATH)
-                    my_res = FRAME_PATH
-                    my_window.append(my_res)
-                    my_frame_path_list.append(FRAME_PATH)
-
+                
+                # check to see if the number of arrays is consistent across all sequences, update the sequence_length variable
                 if sequence_length == -1 or np_count == sequence_length:
                     sequence_length = np_count
-                elif np_count == 0:
-                    raise Exception("{} does not contain any arrays".format(SEQ_PATH))
+                elif len(str_np_arrays) > 0 and np_count == 0:
+                    raise Exception("{} does not contain any numpy array files".format(SEQ_PATH))
                 else:
                     raise Exception("{} does not have consistent number of numpy arrays, expecting {}, found {}".format(SEQ_PATH, sequence_length, np_count))
-
-                my_seq.append(my_window)
-                my_labels.append(label_map[action])
-
-        print("Actions: ", actions)
-        print("no_sequences: ", no_sequences)
-        print("sequence_length: ", sequence_length)
-        print("start_folder: ", start_folder)
-
-        ## OLD CODE Preprocess Data and Create Labels and Features
-
-        new_sequences, labels = [], []
-        for action in actions:
-            nick_list = np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int)
-            for sequence in np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int):
-                window = []
+                
                 for frame_num in range(sequence_length):
-                    # res = np.load(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
-                    res = os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num))
-                    # print(type(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num))))
-                    window.append(res)
-                    nick_frame_path_list.append(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
-                new_sequences.append(window)
+                    # Load each numpy array and unpack the file into the original landmark keypoints array
+                    frame_keypoints = np.load(os.path.join(SEQ_PATH, '{}.npy'.format(frame_num)))
+
+                    # add them to the video list
+                    video.append(frame_keypoints)
+
+                all_data.append(video)
                 labels.append(label_map[action])
 
+        # Nicholas Renotte's code:
+        # new_sequences, labels = [], []
+        # for action in actions:
+        #     for sequence in range(no_sequences):
+        #         window = []
+        #         for frame_num in range(sequence_length):
+        #             res = np.load(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
+        #             window.append(res)
+        #         new_sequences.append(window)
+        #         labels.append(label_map[action])
 
         # Create training and testing sets
-        # X = np.array(new_sequences)
-        # y = to_categorical(labels).astype(int)
+        X = np.array(all_data)
+        y = to_categorical(labels).astype(int)
 
-        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
 
+        # # Create logging and callbacks for TensorBoard
         # log_dir = os.path.join('Logs')
         # tb_callback = TensorBoard(log_dir=log_dir)
 
-        # # Build LSTM RNN model
-        # model = build_model(actions)
+        # Ensure actions is an np.array for the RNN model
+        actions = np.array(actions)
 
-        # # Train the model
-        # model.fit(X_train, y_train, epochs=200, callbacks=[tb_callback])
+        # Build LSTM RNN model
+        model = build_model(actions)
 
-        # # Save the weights
-        # model.save(PROJECT + '.h5')
+        # Train the model
+        model.fit(X_train, y_train, epochs=200)
 
-
-
+        # Save the weights
+        model.save(PROJECT + '_weights.h5')
 
     else:
         raise Exception("{} does not exist".format(DATA_PATH))
 except Exception as e:
     print("ERROR: ", e)
-
-
-
-
-
-
-
-
