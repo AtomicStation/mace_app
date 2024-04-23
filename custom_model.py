@@ -8,7 +8,6 @@ import tensorflow as tf
 from scipy import stats
 from keras import Sequential
 from keras.layers import LSTM, Dense
-from keras.callbacks import TensorBoard
 
 
 mp_holistic = mp.solutions.holistic # Holistic model
@@ -33,13 +32,23 @@ def draw_pose_landmarks(image, results):
                              mp_drawing.DrawingSpec(color=purple, thickness=2, circle_radius=4), 
                              mp_drawing.DrawingSpec(color=light_blue, thickness=2, circle_radius=2)
                              ) 
-    
+
 def extract_keypoints(results):
     pose = np.array([[res.x, res.y, res.z, res.visibility] for res in results.pose_landmarks.landmark]).flatten() if results.pose_landmarks else np.zeros(33*4)
     face = np.array([[res.x, res.y, res.z] for res in results.face_landmarks.landmark]).flatten() if results.face_landmarks else np.zeros(468*3)
     lh = np.array([[res.x, res.y, res.z] for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(21*3)
     rh = np.array([[res.x, res.y, res.z] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)
     return np.concatenate([pose, face, lh, rh])
+
+def prob_viz(res, actions, input_frame):
+    colors = [(245,117,16), (117,245,16), (16,117,245)]
+    output_frame = input_frame.copy()
+    for num, prob in enumerate(res):
+        # cv2.rectangle(output_frame, (0,60+num*40), (int(prob*100), 90+num*40), colors[num], -1)
+        cv2.rectangle(output_frame, (0,60+num*40), (int(prob*100), 90+num*40), colors[0], -1)
+        cv2.putText(output_frame, actions[num], (0, 85+num*40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+        
+    return output_frame
 
 def build_model(actions_list):
     model = Sequential()
