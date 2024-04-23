@@ -94,7 +94,7 @@ try:
 
                 # check if numpy arrays in the sequence directory are missing
                 if not str_np_arrays:
-                    raise Exception("{} does not contain any arrays".format(SEQ_PATH))
+                    raise Exception("{} does not contain any files or directories".format(SEQ_PATH))
                 
                 # Count the number of numpy arrays in the directory
                 for np_array in str_np_arrays:
@@ -119,6 +119,8 @@ try:
 
                 all_data.append(video)
                 labels.append(label_map[action])
+
+        print(label_map)
 
         # Nicholas Renotte's code:
         # new_sequences, labels = [], []
@@ -148,10 +150,10 @@ try:
         model = build_model(actions)
 
         # Train the model
-        model.fit(X_train, y_train, epochs=200)
+        model.fit(X_train, y_train, epochs=300)
 
         # Save the weights
-        model.save(PROJECT + '_weights.h5')
+        model.save(PROJECT + '_weights_100.h5')
 
     else:
         raise Exception("{} does not exist".format(DATA_PATH))
