@@ -60,3 +60,48 @@ def build_model(actions_list):
     model.add(Dense(actions_list.shape[0], activation='softmax'))
     model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categorical_accuracy'])
     return model
+
+def get_size(text, fontFace, fontScale, thickness):
+    (width, height), baseline = cv2.getTextSize(text, fontFace, fontScale, thickness)
+    return width, height
+
+# Get x,y coordinates for centering text on screen
+def get_center(text_width, text_height, video):
+    video_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    video_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    x_pos = (video_width - text_width) // 2
+    y_pos = (video_height + text_height) // 2
+    return x_pos, y_pos
+
+def progress_bar(video, image, progress):
+    # get width and height of the video
+    video_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    video_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    # position the bar on screen
+    x_pos = video_width // 4
+    y_pos = video_height * 3 // 4
+
+    # set up the size 
+    bar_width = video_width // 2
+    bar_height = video_height // 20
+
+    # Set up the topleft corner and bottomright corner of the bars
+    rect_topleft = (x_pos, y_pos)
+    rect_bottomright = (x_pos + bar_width, y_pos + bar_height)
+    rect_progress_bottomright = (x_pos + int(bar_width-(bar_width*progress)), y_pos + bar_height)
+
+    # draw the bars
+    cv2.rectangle(image, rect_topleft,  rect_bottomright, (0,0,0), cv2.FILLED)
+    cv2.rectangle(image, rect_topleft,  rect_progress_bottomright, (0,255,0), cv2.FILLED)
+
+    return image
+
+def display_count(image, count):
+    cv2.putText(image, str(count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+    return image
+
+def display_stats(image, prob, action):
+    build_stats = action + ": " + str(int(prob*100)) + "%"
+    cv2.putText(image, build_stats, (60, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+    return image
