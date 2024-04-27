@@ -28,7 +28,7 @@ END OF ACTION 2 IS BEGINNING OF ACTION 3, etc.
 """
 
 # setup information
-gen_data = True
+gen_data = False
 PROJECT = 'Clubbell'
 # MOVEMENTS = ['swing']
 MOVEMENTS = ['swing', 'open', 'hold', 'idle']
@@ -38,13 +38,13 @@ MOVEMENTS = ['swing', 'open', 'hold', 'idle']
 actions = np.array(MOVEMENTS)
 
 # How many "video" sequence we would like to track
-no_sequences = 15
+no_sequences = 30
 
 # How long (how many frames) each "video" sequence will be
 sequence_length = 30
 
 # Folder start number, change if you already collected data, i.e. you have 15, start_folder should be 16
-start_folder = 16
+start_folder = 31
 
 # initialize the path for data
 DATA_PATH = os.path.join('data', PROJECT)
