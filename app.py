@@ -41,12 +41,12 @@ class SecondWindow(Screen):
 class WindowManager(ScreenManager):
     pass
 
-PROJECT = 'Clubbell'
-MOVEMENTS = ['swing', 'open', 'hold', 'idle']
+PROJECT = 'Clubbell_nohold_noidle'
+MOVEMENTS = ['swing', 'open']
 
 # Build the app
 class MaceCVApp(App):
-
+    counter = 0
     toggle_button_text = StringProperty("Start Counting")
     mediapipe_enabled = BooleanProperty(False)
     rep_label_text = StringProperty('Null')
@@ -55,6 +55,8 @@ class MaceCVApp(App):
     actions = np.array(sorted(MOVEMENTS))
     sequence = ListProperty([])
     predictions = ListProperty([])
+    check_action = ''
+    
 
     def build(self):
         # create super box
@@ -66,19 +68,19 @@ class MaceCVApp(App):
         # Create and build individual label boxes
         label_box_1 = BoxLayout(orientation='vertical')
         prob_label = Label(text='PROBABILITY')
-        self.prob_label_value = Label(text=self.prob_label_text)
+        self.prob_label_value = Label(text=self.prob_label_text,color=(1,1,1,0))
         label_box_1.add_widget(prob_label)
         label_box_1.add_widget(self.prob_label_value)
 
         label_box_2 = BoxLayout(orientation='vertical')
-        class_label = Label(text='CLASS')
-        self.class_label_value = Label(text=self.class_label_text)
+        class_label = Label(text='ACTION')
+        self.class_label_value = Label(text=self.class_label_text,color=(1,1,1,0))
         label_box_2.add_widget(class_label)
         label_box_2.add_widget(self.class_label_value)
         
         label_box_3 = BoxLayout(orientation='vertical')
         rep_label = Label(text='REPS')
-        self.rep_label_value = Label(text=self.rep_label_text)
+        self.rep_label_value = Label(text='Null',color=(1,1,1,0))
         label_box_3.add_widget(rep_label)
         label_box_3.add_widget(self.rep_label_value)
         
@@ -101,7 +103,7 @@ class MaceCVApp(App):
 
         # LSTM RNN Model
         self.model = build_model(self.actions)
-        self.model.load_weights(PROJECT + '_weights_300.h5')
+        self.model.load_weights(PROJECT + '_weights.h5')
 
         # build superBox
         superBox.add_widget(topBox)
@@ -113,7 +115,6 @@ class MaceCVApp(App):
         
 
     def update(self, *args):
-        counter = 0
         action_seq = []
         current_stage = ''
 
@@ -140,16 +141,40 @@ class MaceCVApp(App):
 
                 if len(self.last_sequence) == 30:
                     res = self.model.predict(np.expand_dims(self.last_sequence, axis=0), verbose=0)[0]
-                    max_res = np.argmax(res)
-                    self.predictions.append(max_res)
-                    class_text = self.actions[max_res]
-                    prob_text = res[max_res]
+                    index_res = np.argmax(res)
+                    self.predictions.append(index_res)
+                    pred_action = self.actions[index_res]
+                    pred_prob = res[index_res]
 
                     # # Counter logic
+                    if np.unique(self.predictions[-7:])[0] == index_res:
+                        if pred_prob >= 0.8:
+                            image = display_stats(image, pred_prob, pred_action)
+                            self.prob_label_value.text = str(int(pred_prob*100))+"%"
+                            self.prob_label_value.color = (1,1,1,1)
+                            self.class_label_value.text = pred_action
+                            self.class_label_value.color = (1,1,1,1)
+
+
+                            if self.check_action == 'swing' and pred_action == 'open':
+                                self.counter += 1
+                                self.rep_label_value.text = str(self.counter)
+                                self.rep_label_value.color = (1,1,1,1)
+
+                            self.check_action = pred_action
+                    
+                    image = display_count(image, self.counter)
+                    
 
                     # # Update Probability and Class labels
-                    self.prob_label_value.text = str(prob_text)
-                    self.class_label_value.text = class_text
+                    
+                    # if prob_text >= 0.9:
+                    #     self.prob_label_value.color=(0,1,0)
+                    #     self.class_label_value.color=(0,1,0)
+                    # else:
+                    #     self.prob_label_value.color=(1,1,1)
+                    #     self.class_label_value.color=(1,1,1)
+                    
 
         # Convert raw OpenCV image array into a texture for rendering        
         #     # put image into buffer        
@@ -176,7 +201,8 @@ class MaceCVApp(App):
     def reset_button(self, *args):
         self.prob_label_value.text = '0'
         self.class_label_value.text = 'Idle'
-        self.rep_label_value.text = '0'
+        self.counter = 0
+        # self.rep_label_value.text = '0'
 
 
 # run the app, close openCV after app is closed
