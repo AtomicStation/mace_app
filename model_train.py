@@ -19,7 +19,7 @@ from custom_model import *
 # test7: doesn't exist
 
 # setup information
-PROJECT = 'Clubbell'
+PROJECT = 'Clubbell_nohold_noidle'
 
 # initialize DATA_PATH object
 DATA_PATH = os.path.join('data', PROJECT)
@@ -137,7 +137,7 @@ try:
         X = np.array(all_data)
         y = to_categorical(labels).astype(int)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
         # # Create logging and callbacks for TensorBoard
         # log_dir = os.path.join('Logs')
@@ -150,10 +150,10 @@ try:
         model = build_model(actions)
 
         # Train the model
-        model.fit(X_train, y_train, epochs=300)
+        model.fit(X_train, y_train, epochs=100)
 
         # Save the weights
-        model.save(PROJECT + '_weights_100.h5')
+        model.save(PROJECT + '_weights.h5')
 
     else:
         raise Exception("{} does not exist".format(DATA_PATH))
