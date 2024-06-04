@@ -6,21 +6,6 @@ import mediapipe as mp
 # import custom model functions
 from custom_model import *
 
-def get_size(text, fontFace, fontScale, thickness):
-    (width, height), baseline = cv2.getTextSize(text, fontFace, fontScale, thickness)
-    return width, height
-
-# Get x,y coordinates for centering text on screen
-def get_center(text_width, text_height, video):
-    video_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-    video_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    x_pos = (video_width - text_width) // 2
-    y_pos = (video_height + text_height) // 2
-    return x_pos, y_pos
-
-def progress_bar(text_width, text_height, image, progress):
-    pass
-
 """
 USE THIS FILE IF THE ACTIONS ARE SEQUENTIAL, 
 i.e. END OF ACTION 1 IS BEGINNING OF ACTION 2, 
@@ -44,7 +29,7 @@ no_sequences = 30
 sequence_length = 30
 
 # Folder start number, change if you already collected data, i.e. you have 15, start_folder should be 16
-start_folder = 31
+start_folder = 1
 
 # initialize the path for data
 DATA_PATH = os.path.join('data', PROJECT)
@@ -107,7 +92,7 @@ break_wait = 10
 # Initialize MediaPipe model, in this case we're using the Holistic model
 mp_holistic = mp.solutions.holistic
 
-# Start collecting data
+# Start collecting data by initializing MediaPipe
 with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
     
     # We start with the start_folder number (usually 1, not zero)
@@ -130,11 +115,7 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
 
         # Progress bar
         progress = i/new_length
-        rect_topleft = (textX, textY + 10)
-        rect_bottomright = (textX + text_width, textY+5 + text_height)
-        rect_progress_bottomright = (textX + int(text_width-(text_width*progress)), textY+5 + text_height)
-        cv2.rectangle(image, rect_topleft,  rect_bottomright, (0,0,0), cv2.FILLED)
-        cv2.rectangle(image, rect_topleft,  rect_progress_bottomright, (0,255,0), cv2.FILLED)
+        image = progress_bar(cap, image, progress)
 
         # Show to screen
         cv2.imshow('OpenCV Feed', image)
@@ -145,8 +126,10 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
 
     # loop through the amount of videos(sequences) we want to collect
     while sequence < start_folder+no_sequences:
+
         # Loop through actions
         for action in actions:
+
             # Countdown to prepare for next action
             for i in range(countdown_length):
                 # Get current frame
@@ -166,11 +149,7 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
 
                 # Progress bar
                 progress = i/countdown_length
-                rect_topleft = (textX, textY + 10)
-                rect_bottomright = (textX + text_width, textY+5 + text_height)
-                rect_progress_bottomright = (textX + int(text_width-(text_width*progress)), textY+5 + text_height)
-                cv2.rectangle(image, rect_topleft,  rect_bottomright, (0,0,0), cv2.FILLED)
-                cv2.rectangle(image, rect_topleft,  rect_progress_bottomright, (0,255,0), cv2.FILLED)
+                image = progress_bar(cap, image, progress)
                 
                 # Show updated frame
                 cv2.imshow('OpenCV Feed', image)
@@ -229,14 +208,11 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
             else:
                 continue
 
-            # if cv2.waitKey(60) & 0xFF == ord('q'):
             break
         else:
-            sequence += 1
-            continue
-
             # Iterate the sequence until we have the desired number of videos (sequences)
-            
+            sequence += 1
+            continue            
 
         break
     
