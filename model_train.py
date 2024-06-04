@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import os
 import mediapipe as mp
@@ -9,14 +8,6 @@ from keras.utils import to_categorical
 # import custom model functions
 from custom_model import *
 
-# test: works great!
-# test1: missing sequence in actions 'idle/30' missing
-# test2: missing numpy array in sequence 'swing/30/29.npy' missing
-# test3: missing actions 'data/test3/' is empty
-# test4: missing all actions in 'swing'
-# test5: missing all sequences in 'idle'
-# test6: missing all arrays in 'swing/29/'
-# test7: doesn't exist
 
 # setup information
 PROJECT = 'Clubbell_nohold_noidle'
@@ -153,7 +144,7 @@ try:
         model.fit(X_train, y_train, epochs=100)
 
         # Save the weights
-        model.save(PROJECT + '_weights.h5')
+        model.save('pretrained/' + PROJECT + '_weights.h5')
 
     else:
         raise Exception("{} does not exist".format(DATA_PATH))
