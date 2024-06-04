@@ -7,11 +7,16 @@ from custom_model import *
 mp_holistic = mp.solutions.holistic # Holistic model
 mp_drawing = mp.solutions.drawing_utils # Drawing utilities
 
-PROJECT = 'Clubbell_nohold_noidle'
-MOVEMENTS = ['swing', 'open']
+# PROJECT = 'Clubbell_nohold_noidle'
+# MOVEMENTS = ['swing', 'open']
 
-# PROJECT = 'Mace_Demo'
-# MOVEMENTS = ['swing', 'hold', 'idle']
+PROJECT = 'Mace_Demo'
+MOVEMENTS = ['swing', 'hold', 'idle']
+
+# Path for the pretrained weights for our model
+WEIGHT_PATH = 'pretrained/' + PROJECT + '_weights.h5'
+
+
 
 # New detection variables
 # list of the last keypoints
@@ -64,44 +69,50 @@ else:
 model = build_model(actions)
 
 # Load the projects pre-trained weights
-model.load_weights(PROJECT + '_weights.h5')
+model.load_weights(WEIGHT_PATH)
 
 # Check if this is a live demo or using previously recorded video
-demo = True
+demo = False
 
 if demo:
     # OpenCV uses webcam (value 0)
     cap = cv2.VideoCapture(0)
+    SHOW_WAIT = 30
+    BREAK_WAIT = 10
 
 else:
     # OpenCV needs to find the video
-    video_name = PROJECT.lower()
+    # video_name = 'clubbell'
+    video_name = '5_mace_swings'
     video_path = 'videos/' + video_name + '.mp4'
     cap = cv2.VideoCapture(video_path)
+    SHOW_WAIT = 1
+    BREAK_WAIT = 1
 
 # Start using the MediaPipe model
 with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-    # Give countdown timer before starting to capture frames for detection
-    for i in range(100):
-        # Update feed
-        ret, image = cap.read()
+    if demo:
+        # Give countdown timer before starting to capture frames for detection
+        for i in range(100):
+            # Update feed
+            ret, image = cap.read()
 
-        # "GET READY STARTING SOON"
-        new_text = "GET READY STARTING SOON"
-        text_width, text_height = get_size(new_text, font, 1, 4)
-        textX, textY = get_center(text_width, text_height, cap)
-        cv2.putText(image, new_text, (textX, textY), font, 1, (0,255, 0), 4, cv2.LINE_AA)
+            # "GET READY STARTING SOON"
+            new_text = "GET READY STARTING SOON"
+            text_width, text_height = get_size(new_text, font, 1, 4)
+            textX, textY = get_center(text_width, text_height, cap)
+            cv2.putText(image, new_text, (textX, textY), font, 1, (0,255, 0), 4, cv2.LINE_AA)
 
-        # Progress bar
-        image = progress_bar(cap, image, i/100)
+            # Progress bar
+            image = progress_bar(cap, image, i/100)
 
-        # Show modified frame to screen
-        cv2.imshow('OpenCV Feed', image)
-        cv2.waitKey(30)
+            # Show modified frame to screen
+            cv2.imshow('OpenCV Feed', image)
+            cv2.waitKey(SHOW_WAIT)
 
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            break
-    
+            if cv2.waitKey(BREAK_WAIT) & 0xFF == ord('q'):
+                break
+        
     # Start capturing frames for detection
     while cap.isOpened():
 
@@ -128,6 +139,7 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
         last_sequence = sequence[-30:]
 
 
+
         # When we have 30 frames of data, we can make a prediction
         if len(last_sequence) == 30:
             # get prediction, but first make sure the shape of the array is correct so expand
@@ -145,15 +157,40 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
             # Use the index to get the probability of the action
             pred_prob = res[index_res]
 
-            # if the last -N predictions equal the current prediction, there's a high confidence in that prediction
-            if np.unique(predictions[-10:])[0] == index_res:
+            # New confidence code:
+            last_pred = predictions[-10:]
+            last_values, last_counts = np.unique(last_pred, return_counts=True)
 
+            
+
+            # last_values will be either [0] or [0 1] or [1]
+            # action 0: open, action 1: hold
+            # if it's [0 1] we need to check the counts to see if it's mostly 0 or mostly 1
+            if len(last_values) == 2:
+                highest_count = -1
+                highest_index = -1
+                for index, count in enumerate(last_counts):
+                    if count >= highest_count:
+                        highest_count = count
+                        highest_index = index
+                mostly_action = index
+                print("highest count: {}".format(mostly_action))
+            else:
+                mostly_action = last_values[0]
+                print("no contest: {}".format(mostly_action))
+
+
+
+            # if the last -N predictions equal the current prediction, there's a high confidence in that prediction
+            # if np.unique(predictions[-10:])[0] == index_res:
+            if mostly_action == index_res:
                 # Check the probability versus our confidence threshold
                 if pred_prob > threshold:
                     # if the previous action was swing and current action is the reset_action
                     if check_action == 'swing' and pred_action == reset_action:
                         # count the rep
                         counter += 1
+                        print("***REP COUNT")
                     
                     # after the check, the current action becomes the new check action for next time
                     check_action = pred_action
@@ -168,14 +205,15 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
             # image = prob_viz(res, actions, image)
 
             # Display the counter to the screen
+            # image = bold_stats(image, str(pred_prob), pred_action, counter) - buggy
             image = display_count(image, counter)
     
         # Show to screen
         cv2.imshow('OpenCV Feed', image)
-        cv2.waitKey(20)
+        cv2.waitKey(SHOW_WAIT)
 
         # Break gracefully
-        if cv2.waitKey(20) & 0xFF == ord('q'):
+        if cv2.waitKey(BREAK_WAIT) & 0xFF == ord('q'):
             break
 
     cap.release()
