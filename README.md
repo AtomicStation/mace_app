@@ -10,7 +10,7 @@ This project was designed with this problem in mind: using computer vision techn
 
 Currently, the project uses OpenCV and MediaPipe pose estimation data to train a LSTM RNN model to detect swings. Kivy is used to make the project into a mobile application.
 
-TODO: Add photo of mace, or maybe a photo of me swinging a mace
+[![Watch the video](https://img.youtube.com/vi/NzxdYJMnTzM/0.jpg)](https://www.youtube.com/shorts/NzxdYJMnTzM).
 
 ## Table of Contents (Optional)
 - [Motivation](#motivation)
